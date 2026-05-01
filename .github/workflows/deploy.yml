@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  # Runs on every push to main
+  push:
+    branches: [main]
+
+  # Lets you manually trigger a deploy from the Actions tab
+  workflow_dispatch:
+
+# Allow the job to write to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only allow one deploy at a time
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Set up Node (match whatever version you're using locally)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Build using the github env file (.env.github)
+      - name: Build
+        run: npm run build -- --mode github
+
+      # 5. Upload the dist folder as a GitHub Pages artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      # 6. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

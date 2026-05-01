@@ -1,0 +1,177 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* ── circle ── */
+.circleWrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phaseOverlay {
+  position: absolute;
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.phaseText {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.phaseSub {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ── timer ── */
+.timerDisplay {
+  font-size: 40px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+  margin: 0.25rem 0 0.15rem;
+}
+
+.breathCount {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 0.75rem;
+}
+
+/* ── progress bar ── */
+.progressWrap {
+  width: 200px;
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.08s linear;
+}
+
+/* ── controls ── */
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.btn {
+  padding: 9px 22px;
+  font-size: 14px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  transition: background 0.12s;
+}
+
+.btn:hover   { background: var(--surface-2); }
+.btn:active  { transform: scale(0.98); }
+
+.btnPrimary {
+  background: var(--surface-2);
+  font-weight: 500;
+}
+
+/* ── settings ── */
+.settings {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.settingsSection        { margin-bottom: 1.25rem; }
+.settingsSection:last-child { margin-bottom: 0; }
+
+.settingsSectionLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.settingsRow:last-child { margin-bottom: 0; }
+
+.settingsLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  width: 145px;
+  flex-shrink: 0;
+}
+
+.settingsVal {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ── pattern buttons ── */
+.patternBtns {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.patBtn {
+  padding: 5px 14px;
+  font-size: 13px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  transition: background 0.12s;
+}
+
+.patBtn:hover     { background: var(--surface-2); }
+.patBtnActive     { background: var(--surface-2); font-weight: 500; }
+
+/* ── cycle info ── */
+.cycleInfo {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 10px;
+}
+
+/* ── responsive ── */
+@media (max-width: 400px) {
+  .timerDisplay { font-size: 32px; }
+  .controls     { flex-wrap: wrap; justify-content: center; }
+}
