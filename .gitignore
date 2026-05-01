@@ -1,4 +1,6 @@
 # Logs
+bak/*
+*.disabled
 logs
 *.log
 npm-debug.log*
