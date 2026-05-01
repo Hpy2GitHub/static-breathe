@@ -32,48 +32,82 @@ function cycleInfo(bpm, pattern, holdSecs) {
   return `${inS}s inhale${hold} · ${exS}s exhale`
 }
 
-// inhale → (hold) → exhale → inhale ...
 function nextPhase(phase, holdSecs) {
   if (phase === 'inhale') return holdSecs > 0 ? 'hold' : 'exhale'
   if (phase === 'hold')   return 'exhale'
   return 'inhale'
 }
 
-// Sine ease-in-out: slow start, smooth middle, slow end
-// Feels natural for breathing — mirrors how lungs actually move
 function easeInOutSine(t) {
   return -(Math.cos(Math.PI * t) - 1) / 2
 }
 
 const PATTERNS = ['1:1', '1:2', '1:3', '2:1', '3:1']
 
+// ── localStorage persistence ──────────────────────────────────────────────────
+
+const STORAGE_KEY = 'breathing-app-settings'
+
+const DEFAULTS = {
+  maxRadius:       70,
+  sessionMinutes:  5,
+  bpm:             6,
+  pattern:         '1:1',
+  holdSecs:        1,
+  showTimer:       true,
+  showBreathCount: true,
+  showProgressBar: true,
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) }
+  } catch {}
+  return { ...DEFAULTS }
+}
+
+function saveSettings(settings) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)) } catch {}
+}
+
 // ── component ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // settings
-  const [maxRadius,      setMaxRadius]      = useState(70)
-  const [sessionMinutes, setSessionMinutes] = useState(5)
-  const [bpm,            setBpm]            = useState(6)
-  const [pattern,        setPattern]        = useState('1:1')
-  const [holdSecs,       setHoldSecs]       = useState(1)
-  const [showSettings,   setShowSettings]   = useState(false)
+  // initialise all settings from localStorage (lazy init avoids reading on every render)
+  const [maxRadius,       setMaxRadius]       = useState(() => loadSettings().maxRadius)
+  const [sessionMinutes,  setSessionMinutes]  = useState(() => loadSettings().sessionMinutes)
+  const [bpm,             setBpm]             = useState(() => loadSettings().bpm)
+  const [pattern,         setPattern]         = useState(() => loadSettings().pattern)
+  const [holdSecs,        setHoldSecs]        = useState(() => loadSettings().holdSecs)
+  const [showTimer,       setShowTimer]       = useState(() => loadSettings().showTimer)
+  const [showBreathCount, setShowBreathCount] = useState(() => loadSettings().showBreathCount)
+  const [showProgressBar, setShowProgressBar] = useState(() => loadSettings().showProgressBar)
+  const [showSettings,    setShowSettings]    = useState(false)
+
+  // persist whenever any setting changes
+  useEffect(() => {
+    saveSettings({ maxRadius, sessionMinutes, bpm, pattern, holdSecs,
+                   showTimer, showBreathCount, showProgressBar })
+  }, [maxRadius, sessionMinutes, bpm, pattern, holdSecs,
+      showTimer, showBreathCount, showProgressBar])
 
   // display state
-  const [status,          setStatus]         = useState('idle')
-  const [displayPhase,    setDisplayPhase]   = useState('Ready')
-  const [displaySub,      setDisplaySub]     = useState('Press start')
-  const [sessionDisplay,  setSessionDisplay] = useState('5:00')
-  const [circleR,         setCircleR]        = useState(70 * 0.42)
-  const [phaseProgress,   setPhaseProgress]  = useState(0)
-  const [breathDisplay,   setBreathDisplay]  = useState('—')
+  const [status,         setStatus]         = useState('idle')
+  const [displayPhase,   setDisplayPhase]   = useState('Ready')
+  const [displaySub,     setDisplaySub]     = useState('Press start')
+  const [sessionDisplay, setSessionDisplay] = useState(() => fmtTime(loadSettings().sessionMinutes * 60))
+  const [circleR,        setCircleR]        = useState(() => loadSettings().maxRadius * 0.42)
+  const [phaseProgress,  setPhaseProgress]  = useState(0)
+  const [breathDisplay,  setBreathDisplay]  = useState('—')
 
   // animation refs
-  const animRef    = useRef(null)
-  const sessRef    = useRef(null)
-  const loopState  = useRef({
-    phase: 'inhale', phaseElapsed: 0, lastTs: null, breathCount: 0, sessionLeft: 300,
+  const animRef   = useRef(null)
+  const sessRef   = useRef(null)
+  const loopState = useRef({
+    phase: 'inhale', phaseElapsed: 0, lastTs: null, breathCount: 0, sessionLeft: 0,
   })
-  const settingsRef = useRef({ maxRadius: 70, bpm: 6, pattern: '1:1', holdSecs: 1 })
+  const settingsRef = useRef({ maxRadius, bpm, pattern, holdSecs })
 
   useEffect(() => {
     settingsRef.current = { maxRadius, bpm, pattern, holdSecs }
@@ -93,15 +127,14 @@ export default function App() {
 
     const dur  = phaseDur(ls.phase, ss.bpm, ss.pattern, ss.holdSecs)
     const prog = Math.min(ls.phaseElapsed / dur, 1)
-
-    const lo = minR(ss.maxRadius)
-    const hi = ss.maxRadius
+    const lo   = minR(ss.maxRadius)
+    const hi   = ss.maxRadius
 
     const eased = easeInOutSine(prog)
     let r
     if (ls.phase === 'inhale') r = lo + (hi - lo) * eased
-    else if (ls.phase === 'hold') r = hi                    // stays expanded
-    else r = hi - (hi - lo) * eased                         // exhale
+    else if (ls.phase === 'hold') r = hi
+    else r = hi - (hi - lo) * eased
 
     setCircleR(r)
     setPhaseProgress(prog)
@@ -168,16 +201,23 @@ export default function App() {
     else { loopState.current.sessionLeft = sessionMinutes * 60; start() }
   }
 
-  useEffect(() => { if (status === 'idle') setCircleR(minR(maxRadius)) }, [maxRadius, status, minR])
   useEffect(() => {
-    if (status === 'idle') { loopState.current.sessionLeft = sessionMinutes * 60; setSessionDisplay(fmtTime(sessionMinutes * 60)) }
+    if (status === 'idle') setCircleR(minR(maxRadius))
+  }, [maxRadius, status, minR])
+
+  useEffect(() => {
+    if (status === 'idle') {
+      loopState.current.sessionLeft = sessionMinutes * 60
+      setSessionDisplay(fmtTime(sessionMinutes * 60))
+    }
   }, [sessionMinutes, status])
-  useEffect(() => () => { cancelAnimationFrame(animRef.current); clearInterval(sessRef.current) }, [])
+
+  useEffect(() => () => {
+    cancelAnimationFrame(animRef.current); clearInterval(sessRef.current)
+  }, [])
 
   const startLabel = status === 'running' ? 'Pause' : status === 'paused' ? 'Resume' : 'Start'
   const SVG_SIZE = 280, cx = SVG_SIZE / 2
-  const GRAD_ID = 'sphereGrad'
-  const SHADOW_ID = 'shadowGrad'
 
   return (
     <main className={styles.app}>
@@ -187,51 +227,51 @@ export default function App() {
         <svg width={SVG_SIZE} height={SVG_SIZE} viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}
           style={{ overflow: 'visible' }} aria-hidden="true">
           <defs>
-            <radialGradient id={GRAD_ID} cx="38%" cy="32%" r="62%" fx="38%" fy="32%">
+            <radialGradient id="sphereGrad" cx="38%" cy="32%" r="62%" fx="38%" fy="32%">
               <stop offset="0%"   stopColor="#ffffff" stopOpacity="1" />
               <stop offset="40%"  stopColor="#dde8f8" stopOpacity="1" />
               <stop offset="75%"  stopColor="#a8c4e8" stopOpacity="1" />
               <stop offset="100%" stopColor="#6a96cc" stopOpacity="1" />
             </radialGradient>
-            <radialGradient id={SHADOW_ID} cx="50%" cy="50%" r="50%">
+            <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%"   stopColor="#000814" stopOpacity="0.45" />
               <stop offset="100%" stopColor="#000814" stopOpacity="0"   />
             </radialGradient>
           </defs>
-
-          {/* soft drop shadow ellipse */}
-          <ellipse
-            cx={cx} cy={cx + circleR * 0.72}
-            rx={circleR * 0.75} ry={circleR * 0.18}
-            fill={`url(#${SHADOW_ID})`}
-          />
-
-          {/* main sphere */}
-          <circle cx={cx} cy={cx} r={circleR} fill={`url(#${GRAD_ID})`} />
-
-          {/* specular glint */}
+          <ellipse cx={cx} cy={cx + circleR * 0.72}
+            rx={circleR * 0.75} ry={circleR * 0.18} fill="url(#shadowGrad)" />
+          <circle cx={cx} cy={cx} r={circleR} fill="url(#sphereGrad)" />
           <ellipse
             cx={cx - circleR * 0.22} cy={cx - circleR * 0.26}
-            rx={circleR * 0.18}      ry={circleR * 0.11}
+            rx={circleR * 0.18} ry={circleR * 0.11}
             fill="white" opacity="0.55"
-            style={{ transform: `rotate(-35deg)`, transformOrigin: `${cx - circleR * 0.22}px ${cx - circleR * 0.26}px` }}
+            style={{ transform: 'rotate(-35deg)',
+                     transformOrigin: `${cx - circleR * 0.22}px ${cx - circleR * 0.26}px` }}
           />
         </svg>
-
         <div className={styles.phaseOverlay}>
-          <span className={styles.phaseText}>{displayPhase}</span>
+          <span className={styles.phaseSub}>{displayPhase}</span>
           <span className={styles.phaseSub}>{displaySub}</span>
         </div>
       </div>
 
-      {/* ── timer + count ── */}
-      <div className={styles.timerDisplay}>{sessionDisplay}</div>
-      <div className={styles.breathCount}>{breathDisplay}</div>
+      {/* ── optional numbers ── */}
+      {showTimer       && <div className={styles.timerDisplay}>{sessionDisplay}</div>}
+      {showBreathCount && <div className={styles.breathCount}>{breathDisplay}</div>}
 
-      {/* ── progress bar ── */}
-      <div className={styles.progressWrap}>
-        <div className={styles.progressBar} style={{ width: `${(phaseProgress * 100).toFixed(1)}%` }} />
-      </div>
+      {/* ── optional progress bar ── */}
+      {showProgressBar && (
+        <div className={styles.progressWrap}>
+          <div className={styles.progressBar} style={{ width: `${(phaseProgress * 100).toFixed(1)}%` }} />
+        </div>
+      )}
+
+      {/* spacer so controls don't jump when elements are hidden */}
+      {(!showTimer || !showBreathCount || !showProgressBar) && (
+        <div style={{ height: `${
+          (!showTimer ? 52 : 0) + (!showBreathCount ? 22 : 0) + (!showProgressBar ? 24 : 0)
+        }px` }} />
+      )}
 
       {/* ── controls ── */}
       <div className={styles.controls}>
@@ -268,23 +308,18 @@ export default function App() {
 
           <div className={styles.settingsSection}>
             <p className={styles.settingsSectionLabel}>Breathing</p>
-
             <div className={styles.settingsRow}>
               <label className={styles.settingsLabel} htmlFor="sl-bpm">Breaths / min</label>
               <input id="sl-bpm" type="range" min="2" max="20" step="1"
                 value={bpm} onChange={e => setBpm(Number(e.target.value))} />
               <span className={styles.settingsVal}>{bpm}</span>
             </div>
-
             <div className={styles.settingsRow}>
               <label className={styles.settingsLabel} htmlFor="sl-hold">Hold after inhale</label>
               <input id="sl-hold" type="range" min="0" max="8" step="0.5"
                 value={holdSecs} onChange={e => setHoldSecs(Number(e.target.value))} />
-              <span className={styles.settingsVal}>
-                {holdSecs === 0 ? 'off' : `${holdSecs}s`}
-              </span>
+              <span className={styles.settingsVal}>{holdSecs === 0 ? 'off' : `${holdSecs}s`}</span>
             </div>
-
             <div className={styles.settingsRow} style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
               <span className={styles.settingsLabel}>Pattern (in : out)</span>
               <div className={styles.patternBtns}>
@@ -296,8 +331,26 @@ export default function App() {
                 ))}
               </div>
             </div>
-
             <p className={styles.cycleInfo}>{cycleInfo(bpm, pattern, holdSecs)}</p>
+          </div>
+
+          <div className={styles.settingsSection}>
+            <p className={styles.settingsSectionLabel}>Display</p>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={showTimer}
+                onChange={e => setShowTimer(e.target.checked)} />
+              <span>Session timer</span>
+            </label>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={showBreathCount}
+                onChange={e => setShowBreathCount(e.target.checked)} />
+              <span>Breath count</span>
+            </label>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={showProgressBar}
+                onChange={e => setShowProgressBar(e.target.checked)} />
+              <span>Progress bar</span>
+            </label>
           </div>
 
         </div>

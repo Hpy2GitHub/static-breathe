@@ -1,4 +1,4 @@
-# Breathing App
+# Breathe (Breathing App)
 
 A minimal, customisable breathing exercise app built with React + Vite.
 
@@ -33,7 +33,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### 1. Create a GitHub repository
 
-Go to [github.com/new](https://github.com/new) and create a new repo, e.g. `breathing-app`.
+Go to [github.com/new](https://github.com/new) and create a new repo, e.g. `breathe`.
 
 ### 2. Set the base path in vite.config.js
 
@@ -93,7 +93,7 @@ https://YOUR_USERNAME.github.io/YOUR_REPO/
 ## Project structure
 
 ```
-breathing-app/
+breathe/
 ├── index.html
 ├── package.json
 ├── vite.config.js

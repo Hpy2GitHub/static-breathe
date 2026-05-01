@@ -170,6 +170,28 @@
   margin-top: 10px;
 }
 
+/* ── checkbox rows ── */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 9px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkRow:last-child { margin-bottom: 0; }
+
+.checkRow input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 /* ── responsive ── */
 @media (max-width: 400px) {
   .timerDisplay { font-size: 32px; }

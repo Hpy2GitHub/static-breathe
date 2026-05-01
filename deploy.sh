@@ -84,7 +84,7 @@ if [ "$1" = "apache" ]; then
 
   echo "6. Syncing images..."
   mkdir -p "$TARGET_DIR/images"
-  cp -ur ./public/images/. "$TARGET_DIR/images/"
+  cp -ur ./public/. "$TARGET_DIR/"
 
   echo ""
   echo "9. Setting permissions..."
